@@ -83,6 +83,18 @@ return [
 - **Assignments** — grant a rule to users (and roles, if configured) on each rule's page.
 - **Access Tester** — pick a user, a record and an action, and see the live decision:
   Granted / Denied / No opinion.
+- **User Access** — pick a user and a model and see *every* record listed as
+  Granted / Denied / No rule at once — the whole "what can they see?" picture.
+
+## Restricting the ACL screens
+
+By default any panel user who can reach the panel sees these screens. To limit them
+to specific admins, list their user ids:
+
+```php
+// config/model-acl-filament.php
+'admin_ids' => [1], // only user 1 sees Access Rules, Access Tester and User Access
+```
 
 ## Pre-seeding example rules
 

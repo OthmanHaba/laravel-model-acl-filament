@@ -46,6 +46,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Who may manage access control
+    |--------------------------------------------------------------------------
+    |
+    | User ids allowed to see the Access Rules, Access Tester and User Access
+    | screens. Leave null/empty to allow every panel user; set e.g. [1] to
+    | restrict these screens to specific admins.
+    |
+    */
+    'admin_ids' => null,
+
+    /*
+    |--------------------------------------------------------------------------
     | Navigation
     |--------------------------------------------------------------------------
     */

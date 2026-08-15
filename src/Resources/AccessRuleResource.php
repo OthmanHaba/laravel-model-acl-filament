@@ -21,6 +21,7 @@ use OthmanHaba\LaravelModelAcl\Rules\FilterRule;
 use OthmanHaba\LaravelModelAcl\Rules\StatusRule;
 use OthmanHaba\LaravelModelAclFilament\Resources\AccessRuleResource\Pages;
 use OthmanHaba\LaravelModelAclFilament\Resources\AccessRuleResource\RelationManagers\AssignmentsRelationManager;
+use OthmanHaba\LaravelModelAclFilament\Support\Access;
 use OthmanHaba\LaravelModelAclFilament\Support\ManagedModels;
 
 class AccessRuleResource extends Resource
@@ -32,6 +33,11 @@ class AccessRuleResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return config('model-acl-filament.navigation_group');
+    }
+
+    public static function canAccess(): bool
+    {
+        return Access::allows(auth()->user());
     }
 
     public static function getModelLabel(): string
@@ -100,7 +106,7 @@ class AccessRuleResource extends Resource
                         ->helperText('The record must match these. Rows joined with OR start a new group; AND binds tighter than OR.')
                         ->visible(fn (Get $get) => $get('rule_class') === FilterRule::class)
                         ->columnSpanFull()
-                        ->columns(12)
+                        ->columns(['default' => 1, 'md' => 2, 'xl' => 4])
                         ->minItems(1)
                         ->addActionLabel('Add another filter')
                         ->schema([
@@ -108,27 +114,23 @@ class AccessRuleResource extends Resource
                                 ->label('Join')
                                 ->options(['and' => 'AND', 'or' => 'OR'])
                                 ->default('and')
-                                ->native(false)
-                                ->columnSpan(2),
+                                ->native(false),
                             Select::make('column')
                                 ->label('Column')
                                 ->options(fn ($livewire) => ManagedModels::filterColumns(
                                     data_get($livewire, 'data.ruleable_type')
                                 ))
                                 ->required()
-                                ->native(false)
-                                ->columnSpan(4),
+                                ->native(false),
                             Select::make('operator')
                                 ->label('Condition')
                                 ->options(ManagedModels::OPERATORS)
                                 ->default('=')
                                 ->required()
-                                ->native(false)
-                                ->columnSpan(3),
+                                ->native(false),
                             TextInput::make('value')
                                 ->label('Value')
-                                ->helperText('For "is one of", separate with commas.')
-                                ->columnSpan(3),
+                                ->helperText('For "is one of", separate with commas.'),
                         ]),
                 ]),
 

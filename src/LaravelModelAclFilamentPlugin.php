@@ -7,6 +7,7 @@ namespace OthmanHaba\LaravelModelAclFilament;
 use Filament\Contracts\Plugin;
 use Filament\Panel;
 use OthmanHaba\LaravelModelAclFilament\Pages\AccessTester;
+use OthmanHaba\LaravelModelAclFilament\Pages\UserAccess;
 use OthmanHaba\LaravelModelAclFilament\Resources\AccessRuleResource;
 
 class LaravelModelAclFilamentPlugin implements Plugin
@@ -29,6 +30,7 @@ class LaravelModelAclFilamentPlugin implements Plugin
             ])
             ->pages([
                 AccessTester::class,
+                UserAccess::class,
             ]);
     }
 

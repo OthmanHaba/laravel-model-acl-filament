@@ -11,6 +11,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use OthmanHaba\LaravelModelAcl\Services\AccessControlService;
+use OthmanHaba\LaravelModelAclFilament\Support\Access;
 use OthmanHaba\LaravelModelAclFilament\Support\ManagedModels;
 
 class AccessTester extends Page implements HasForms
@@ -31,6 +32,11 @@ class AccessTester extends Page implements HasForms
     public static function getNavigationGroup(): ?string
     {
         return config('model-acl-filament.navigation_group');
+    }
+
+    public static function canAccess(): bool
+    {
+        return Access::allows(auth()->user());
     }
 
     protected static function userModel(): string
