@@ -6,9 +6,8 @@ return [
     | Assignable Models
     |--------------------------------------------------------------------------
     |
-    | Models that an access rule can be assigned to, mapped to the column used
-    | as their display title in the assignment UI. Add your Spatie role model
-    | here to assign rules to roles as well as users.
+    | Who a rule can be granted to, mapped to the column used as their display
+    | name. Add your Spatie role model here to grant rules to roles too.
     |
     */
     'assignables' => [
@@ -18,15 +17,31 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Testable Models
+    | Managed Models
     |--------------------------------------------------------------------------
     |
-    | Models selectable in the Access Tester page, mapped to the column used
-    | as their display title when picking a record.
+    | The models an admin can write rules for, described in plain terms so the
+    | rule builder never exposes class names or column names. Each entry:
+    |
+    |   'label'         Friendly name shown in the dropdown (e.g. "Tickets").
+    |   'title'         Column used when picking an individual record.
+    |   'actions'       Actions offered for this model (defaults to the four below).
+    |   'statuses'      Selectable statuses — enables the "by status" condition.
+    |   'status_column' Column the status lives in (default: status).
+    |   'owner_column'  Column holding the owner's id (default: user_id).
+    |   'date_column'   Column used by the "by date range" condition (default: created_at).
     |
     */
-    'testable_models' => [
-        // \App\Models\Ticket::class => 'title',
+    'managed_models' => [
+        // \App\Models\Ticket::class => [
+        //     'label' => 'Tickets',
+        //     'title' => 'title',
+        //     'actions' => ['view', 'create', 'update', 'delete'],
+        //     'statuses' => ['open', 'pending', 'closed'],
+        //     'status_column' => 'status',
+        //     'owner_column' => 'user_id',
+        //     'date_column' => 'created_at',
+        // ],
     ],
 
     /*

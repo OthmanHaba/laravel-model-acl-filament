@@ -11,6 +11,7 @@ use Filament\Pages\Page;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use OthmanHaba\LaravelModelAcl\Services\AccessControlService;
+use OthmanHaba\LaravelModelAclFilament\Support\ManagedModels;
 
 class AccessTester extends Page implements HasForms
 {
@@ -30,12 +31,6 @@ class AccessTester extends Page implements HasForms
     public static function getNavigationGroup(): ?string
     {
         return config('model-acl-filament.navigation_group');
-    }
-
-    /** @return array<class-string, string> */
-    protected static function testableModels(): array
-    {
-        return config('model-acl-filament.testable_models', []);
     }
 
     protected static function userModel(): string
@@ -63,12 +58,10 @@ class AccessTester extends Page implements HasForms
 
                 Select::make('model_class')
                     ->label('Model')
-                    ->options(collect(static::testableModels())
-                        ->keys()
-                        ->mapWithKeys(fn (string $c) => [$c => class_basename($c)])
-                        ->all())
+                    ->options(ManagedModels::modelOptions())
                     ->required()
-                    ->live(),
+                    ->live()
+                    ->native(false),
 
                 Select::make('record_id')
                     ->label('Record')
@@ -76,20 +69,21 @@ class AccessTester extends Page implements HasForms
                     ->searchable()
                     ->options(function (Get $get): array {
                         $class = $get('model_class');
-                        $models = static::testableModels();
 
-                        if (! $class || ! isset($models[$class])) {
+                        if (! $class || ! isset(ManagedModels::all()[$class])) {
                             return [];
                         }
 
-                        return $class::query()->pluck($models[$class], (new $class)->getKeyName())->all();
+                        return $class::query()
+                            ->pluck(ManagedModels::titleColumn($class), (new $class)->getKeyName())
+                            ->all();
                     }),
 
                 Select::make('action')
-                    ->options(collect(config('access-control.standard_actions', []))
-                        ->mapWithKeys(fn (string $a) => [$a => $a])
-                        ->all())
-                    ->required(),
+                    ->label('Action')
+                    ->options(fn (Get $get) => ManagedModels::actionOptions($get('model_class')))
+                    ->required()
+                    ->native(false),
             ])
             ->statePath('data');
     }

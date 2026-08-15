@@ -10,4 +10,9 @@ use OthmanHaba\LaravelModelAclFilament\Resources\AccessRuleResource;
 class CreateAccessRule extends CreateRecord
 {
     protected static string $resource = AccessRuleResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return AccessRuleResource::prepare($data);
+    }
 }

@@ -6,22 +6,20 @@ namespace OthmanHaba\LaravelModelAclFilament\Resources;
 
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Illuminate\Support\Str;
-use OthmanHaba\LaravelModelAcl\Rules\AttributeRule;
 use OthmanHaba\LaravelModelAcl\Rules\DateRangeRule;
-use OthmanHaba\LaravelModelAcl\Rules\OwnershipRule;
 use OthmanHaba\LaravelModelAcl\Rules\StatusRule;
 use OthmanHaba\LaravelModelAclFilament\Resources\AccessRuleResource\Pages;
 use OthmanHaba\LaravelModelAclFilament\Resources\AccessRuleResource\RelationManagers\AssignmentsRelationManager;
+use OthmanHaba\LaravelModelAclFilament\Support\ManagedModels;
 
 class AccessRuleResource extends Resource
 {
@@ -34,94 +32,80 @@ class AccessRuleResource extends Resource
         return config('model-acl-filament.navigation_group');
     }
 
-    /**
-     * Options for the rule_class select, derived from the parent package's
-     * configured built-in rules (slug => class).
-     */
-    protected static function ruleClassOptions(): array
+    public static function getModelLabel(): string
     {
-        return collect(config('access-control.built_in_rules', []))
-            ->mapWithKeys(fn (string $class, string $slug) => [$class => Str::headline($slug)])
-            ->all();
+        return 'access rule';
     }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('name')
-                ->required()
-                ->maxLength(255),
+            Section::make('What can they access?')
+                ->description('Pick the thing to protect and whether this rule grants or blocks access.')
+                ->columns(2)
+                ->schema([
+                    Select::make('ruleable_type')
+                        ->label('Model')
+                        ->options(ManagedModels::modelOptions())
+                        ->required()
+                        ->live()
+                        ->native(false),
 
-            TextInput::make('key')
-                ->required()
-                ->helperText('Must start with the action, e.g. "view_ticket". Rules are matched by the action prefix before the first underscore.'),
+                    Select::make('action')
+                        ->label('Action')
+                        ->options(fn (Get $get) => ManagedModels::actionOptions($get('ruleable_type')))
+                        ->required()
+                        ->native(false)
+                        ->default('view'),
 
-            Select::make('rule_class')
-                ->label('Rule type')
-                ->options(static::ruleClassOptions())
-                ->required()
-                ->live(),
+                    Toggle::make('is_deny_rule')
+                        ->label('Block access')
+                        ->helperText('Leave off to grant access. Turn on to block it — a block always wins over a grant.')
+                        ->columnSpanFull(),
+                ]),
 
-            TextInput::make('ruleable_type')
-                ->label('Applies to model (FQCN)')
-                ->helperText('Fully-qualified model class this rule applies to. Leave empty for a global rule.'),
+            Section::make('Under what condition?')
+                ->description('Choose which records this rule covers.')
+                ->columns(2)
+                ->schema([
+                    Select::make('rule_class')
+                        ->label('Condition')
+                        ->options(fn (Get $get) => ManagedModels::conditionOptions($get('ruleable_type')))
+                        ->required()
+                        ->live()
+                        ->native(false)
+                        ->columnSpanFull(),
 
-            TextInput::make('priority')
-                ->numeric()
-                ->default(0)
-                ->helperText('Higher priority rules are evaluated first.'),
+                    Select::make('settings.statuses')
+                        ->label('Allowed statuses')
+                        ->multiple()
+                        ->options(fn (Get $get) => ManagedModels::statusOptions($get('ruleable_type')))
+                        ->required()
+                        ->visible(fn (Get $get) => $get('rule_class') === StatusRule::class)
+                        ->columnSpanFull(),
 
-            Toggle::make('is_deny_rule')
-                ->label('Deny rule')
-                ->helperText('A deny rule overrides any matching allow rule.'),
+                    DatePicker::make('settings.from')
+                        ->label('From')
+                        ->native(false)
+                        ->visible(fn (Get $get) => $get('rule_class') === DateRangeRule::class),
+                    DatePicker::make('settings.to')
+                        ->label('To')
+                        ->native(false)
+                        ->visible(fn (Get $get) => $get('rule_class') === DateRangeRule::class),
+                ]),
 
-            Toggle::make('active')
-                ->default(true),
+            Section::make('Details')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('name')
+                        ->label('Label')
+                        ->helperText('Optional. Left blank, we name it for you.')
+                        ->maxLength(255),
 
-            // --- Settings: shown per selected rule type -----------------------
-
-            TagsInput::make('settings.statuses')
-                ->label('Allowed statuses')
-                ->visible(fn (Get $get) => $get('rule_class') === StatusRule::class),
-            TextInput::make('settings.status_column')
-                ->label('Status column')
-                ->placeholder('status')
-                ->visible(fn (Get $get) => $get('rule_class') === StatusRule::class),
-
-            DatePicker::make('settings.from')
-                ->visible(fn (Get $get) => $get('rule_class') === DateRangeRule::class),
-            DatePicker::make('settings.to')
-                ->visible(fn (Get $get) => $get('rule_class') === DateRangeRule::class),
-            TextInput::make('settings.date_column')
-                ->label('Date column')
-                ->placeholder('created_at')
-                ->visible(fn (Get $get) => $get('rule_class') === DateRangeRule::class),
-
-            TextInput::make('settings.owner_column')
-                ->label('Owner column (on the model)')
-                ->placeholder('user_id')
-                ->visible(fn (Get $get) => $get('rule_class') === OwnershipRule::class),
-            TextInput::make('settings.user_id_column')
-                ->label('User identifier column')
-                ->placeholder('id')
-                ->visible(fn (Get $get) => $get('rule_class') === OwnershipRule::class),
-
-            TextInput::make('settings.model_attribute')
-                ->label('Model attribute')
-                ->visible(fn (Get $get) => $get('rule_class') === AttributeRule::class),
-            TextInput::make('settings.user_attribute')
-                ->label('User attribute (compared against the model attribute)')
-                ->visible(fn (Get $get) => $get('rule_class') === AttributeRule::class),
-            TextInput::make('settings.static_value')
-                ->label('Static value (used when no user attribute is set)')
-                ->visible(fn (Get $get) => $get('rule_class') === AttributeRule::class),
-            Select::make('settings.operator')
-                ->options(array_combine(
-                    ['=', '!=', '>', '>=', '<', '<=', 'in', 'not_in'],
-                    ['=', '!=', '>', '>=', '<', '<=', 'in', 'not_in'],
-                ))
-                ->default('=')
-                ->visible(fn (Get $get) => $get('rule_class') === AttributeRule::class),
+                    Toggle::make('active')
+                        ->label('Active')
+                        ->default(true),
+                ]),
         ]);
     }
 
@@ -129,23 +113,74 @@ class AccessRuleResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('key')->searchable()->sortable(),
-                TextColumn::make('rule_class')
-                    ->label('Rule type')
-                    ->formatStateUsing(fn (string $state) => class_basename($state)),
+                TextColumn::make('name')->label('Label')->searchable()->sortable(),
                 TextColumn::make('ruleable_type')
                     ->label('Model')
-                    ->formatStateUsing(fn (?string $state) => $state ? class_basename($state) : 'Global')
-                    ->badge(),
-                TextColumn::make('priority')->sortable(),
-                IconColumn::make('is_deny_rule')->label('Deny')->boolean(),
+                    ->formatStateUsing(fn (?string $state) => ManagedModels::modelLabel($state))
+                    ->badge()
+                    ->color('gray'),
+                TextColumn::make('action')
+                    ->label('Action')
+                    ->state(fn ($record) => \Illuminate\Support\Str::headline(
+                        ManagedModels::actionFromKey($record->key) ?? ''
+                    )),
+                TextColumn::make('rule_class')
+                    ->label('Condition')
+                    ->formatStateUsing(fn (string $state) => ManagedModels::conditionLabel($state))
+                    ->wrap(),
+                IconColumn::make('is_deny_rule')
+                    ->label('Blocks')
+                    ->boolean()
+                    ->trueIcon('heroicon-o-no-symbol')
+                    ->trueColor('danger')
+                    ->falseIcon('heroicon-o-check-circle')
+                    ->falseColor('success'),
                 IconColumn::make('active')->boolean(),
                 TextColumn::make('assignments_count')
                     ->counts('assignments')
-                    ->label('Assignees'),
+                    ->label('Granted to')
+                    ->badge(),
             ])
             ->defaultSort('priority', 'desc');
+    }
+
+    /**
+     * Turn the friendly form state into the columns the ACL engine stores:
+     * computes the rule key, fills column settings from config, auto-names the
+     * rule, and prioritises blocks over grants. Used by both create and edit.
+     */
+    public static function prepare(array $data): array
+    {
+        $model = $data['ruleable_type'] ?? null;
+        $action = $data['action'] ?? 'view';
+
+        if ($model) {
+            $data['key'] = ManagedModels::buildKey($model, $action);
+        }
+
+        $data['settings'] = array_merge(
+            $data['settings'] ?? [],
+            ManagedModels::columnSettings($model, $data['rule_class'] ?? null),
+        );
+
+        if (empty($data['name'])) {
+            $data['name'] = \Illuminate\Support\Str::headline($action) . ' ' . ManagedModels::modelLabel($model);
+        }
+
+        // Blocks must outrank grants under every resolution strategy.
+        $data['priority'] = ! empty($data['is_deny_rule']) ? 100 : 0;
+
+        unset($data['action']);
+
+        return $data;
+    }
+
+    /** Restore the friendly `action` field from the stored key when editing. */
+    public static function hydrate(array $data): array
+    {
+        $data['action'] = ManagedModels::actionFromKey($data['key'] ?? null);
+
+        return $data;
     }
 
     public static function getRelations(): array
