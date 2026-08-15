@@ -27,9 +27,7 @@ class AccessRuleResource extends Resource
 {
     protected static ?string $model = \OthmanHaba\LaravelModelAcl\Models\AccessRule::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-shield-check';
-
-    protected static ?string $modelLabel = 'Access Rule';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-shield-check';
 
     public static function getNavigationGroup(): ?string
     {

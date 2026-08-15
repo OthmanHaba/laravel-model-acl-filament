@@ -16,11 +16,9 @@ class AccessTester extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-beaker';
+    protected static string | \BackedEnum | null $navigationIcon = 'heroicon-o-beaker';
 
-    protected static string $view = 'model-acl-filament::pages.access-tester';
-
-    protected static ?string $title = 'Access Tester';
+    protected string $view = 'model-acl-filament::pages.access-tester';
 
     public ?array $data = [];
 

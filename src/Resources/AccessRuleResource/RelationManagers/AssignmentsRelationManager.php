@@ -18,8 +18,6 @@ class AssignmentsRelationManager extends RelationManager
 {
     protected static string $relationship = 'assignments';
 
-    protected static ?string $title = 'Assignments';
-
     /**
      * Configured assignable models, mapped to their display-title column.
      *
