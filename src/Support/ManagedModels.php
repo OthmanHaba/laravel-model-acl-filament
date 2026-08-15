@@ -6,6 +6,7 @@ namespace OthmanHaba\LaravelModelAclFilament\Support;
 
 use Illuminate\Support\Str;
 use OthmanHaba\LaravelModelAcl\Rules\DateRangeRule;
+use OthmanHaba\LaravelModelAcl\Rules\FilterRule;
 use OthmanHaba\LaravelModelAcl\Rules\OwnershipRule;
 use OthmanHaba\LaravelModelAcl\Rules\StatusRule;
 
@@ -23,6 +24,20 @@ class ManagedModels
         StatusRule::class => 'Only records with a chosen status',
         OwnershipRule::class => 'Only records the user owns',
         DateRangeRule::class => 'Only records within a date range',
+        FilterRule::class => 'Custom filter (choose columns & values)',
+    ];
+
+    /** Filter operators: stored token => plain-language label. */
+    public const OPERATORS = [
+        '=' => 'is',
+        '!=' => 'is not',
+        '>' => 'greater than',
+        '>=' => 'greater than or equal to',
+        '<' => 'less than',
+        '<=' => 'less than or equal to',
+        'in' => 'is one of',
+        'not_in' => 'is not one of',
+        'contains' => 'contains',
     ];
 
     /** @return array<class-string, array<string, mixed>> */
@@ -62,7 +77,10 @@ class ManagedModels
             ->all();
     }
 
-    /** Condition dropdown, hiding "by status" when the model has no statuses. */
+    /**
+     * Condition dropdown, hiding options the model can't support: "by status"
+     * without configured statuses, and "custom filter" without filter columns.
+     */
     public static function conditionOptions(?string $class): array
     {
         $options = static::CONDITIONS;
@@ -71,7 +89,17 @@ class ManagedModels
             unset($options[StatusRule::class]);
         }
 
+        if (empty(static::filterColumns($class))) {
+            unset($options[FilterRule::class]);
+        }
+
         return $options;
+    }
+
+    /** Filter-builder columns for a model: column => friendly label. */
+    public static function filterColumns(?string $class): array
+    {
+        return static::config($class)['columns'] ?? [];
     }
 
     public static function conditionLabel(string $ruleClass): string

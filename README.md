@@ -55,6 +55,10 @@ return [
             'status_column' => 'status',                // defaults to "status"
             'owner_column' => 'user_id',                // defaults to "user_id"
             'date_column' => 'created_at',              // defaults to "created_at"
+            'columns' => [                              // enables the "custom filter" condition
+                'priority' => 'Priority',
+                'status' => 'Status',
+            ],
         ],
     ],
 
@@ -70,6 +74,9 @@ return [
   - *Only records with a chosen status* — pick from the statuses you configured.
   - *Only records the user owns.*
   - *Only records within a date range.*
+  - *Custom filter* — build one or more `column → condition → value` rows
+    (e.g. `priority is greater than 3` **AND** `status is open`), joined with AND/OR.
+    Only offered for models that declare `columns`.
 
   The rule's technical key, rule class, columns and priority are all derived from your
   config and the choices above. Blocks automatically outrank grants.

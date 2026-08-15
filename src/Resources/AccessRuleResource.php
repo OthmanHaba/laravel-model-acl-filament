@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace OthmanHaba\LaravelModelAclFilament\Resources;
 
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -16,6 +17,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use OthmanHaba\LaravelModelAcl\Rules\DateRangeRule;
+use OthmanHaba\LaravelModelAcl\Rules\FilterRule;
 use OthmanHaba\LaravelModelAcl\Rules\StatusRule;
 use OthmanHaba\LaravelModelAclFilament\Resources\AccessRuleResource\Pages;
 use OthmanHaba\LaravelModelAclFilament\Resources\AccessRuleResource\RelationManagers\AssignmentsRelationManager;
@@ -92,6 +94,42 @@ class AccessRuleResource extends Resource
                         ->label('To')
                         ->native(false)
                         ->visible(fn (Get $get) => $get('rule_class') === DateRangeRule::class),
+
+                    Repeater::make('clauses')
+                        ->label('Filters')
+                        ->helperText('The record must match these. Rows joined with OR start a new group; AND binds tighter than OR.')
+                        ->visible(fn (Get $get) => $get('rule_class') === FilterRule::class)
+                        ->columnSpanFull()
+                        ->columns(12)
+                        ->minItems(1)
+                        ->addActionLabel('Add another filter')
+                        ->schema([
+                            Select::make('boolean')
+                                ->label('Join')
+                                ->options(['and' => 'AND', 'or' => 'OR'])
+                                ->default('and')
+                                ->native(false)
+                                ->columnSpan(2),
+                            Select::make('column')
+                                ->label('Column')
+                                ->options(fn ($livewire) => ManagedModels::filterColumns(
+                                    data_get($livewire, 'data.ruleable_type')
+                                ))
+                                ->required()
+                                ->native(false)
+                                ->columnSpan(4),
+                            Select::make('operator')
+                                ->label('Condition')
+                                ->options(ManagedModels::OPERATORS)
+                                ->default('=')
+                                ->required()
+                                ->native(false)
+                                ->columnSpan(3),
+                            TextInput::make('value')
+                                ->label('Value')
+                                ->helperText('For "is one of", separate with commas.')
+                                ->columnSpan(3),
+                        ]),
                 ]),
 
             Section::make('Details')
@@ -163,6 +201,13 @@ class AccessRuleResource extends Resource
             ManagedModels::columnSettings($model, $data['rule_class'] ?? null),
         );
 
+        // The custom-filter builder lives in a top-level `clauses` repeater;
+        // fold it into the rule's settings and drop the scratch field.
+        if (($data['rule_class'] ?? null) === FilterRule::class) {
+            $data['settings']['clauses'] = array_values($data['clauses'] ?? []);
+        }
+        unset($data['clauses']);
+
         if (empty($data['name'])) {
             $data['name'] = \Illuminate\Support\Str::headline($action) . ' ' . ManagedModels::modelLabel($model);
         }
@@ -175,10 +220,11 @@ class AccessRuleResource extends Resource
         return $data;
     }
 
-    /** Restore the friendly `action` field from the stored key when editing. */
+    /** Restore the friendly `action`/`clauses` fields from stored data when editing. */
     public static function hydrate(array $data): array
     {
         $data['action'] = ManagedModels::actionFromKey($data['key'] ?? null);
+        $data['clauses'] = $data['settings']['clauses'] ?? [];
 
         return $data;
     }
